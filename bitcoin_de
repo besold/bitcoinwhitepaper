@@ -1,0 +1,141 @@
+Translated  to German  from bitcoin.org/bitcoin.pdf by Markus Besold.
+Bitcoin:
+Ein elektronisches Peer-to-Peer Bargeldystem
+
+Satoshi Nakamoto
+satoshin@gmx.com
+www.bitcoin.org
+
+Kurzfassung: Eine reine Peer-to-Peer Version elektronischen Bargeldes würde es ermöglichen Zahlungen direkt von einer Partei zu einer anderen zu schicken ohne durch ein Finanzinstitut zu gehen. Digitale Unterschriften stellen einen Teil der Lösung, aber Hauptvorteile gehen verloren, wenn nach wie vor eine dritte Instanz notwendig wäre, um Mehrfachausgaben (Double Spending) zu verhindern. Wir bieten eine Lösung für das Double-Spending-Problem in Form eines Peer-to-Peer-Netzwerkes. Das Netzwerk versieht die Transaktionen mit einem Zeitstempel (Timestamp) im Streuspeicherverfahren und speichert diese in einer fortlaufenden Kette von hash-gesicherten Arbeitsnachweisen (Proof-of-Work), und formt so einen Datensatz, der nicht abgeändert werden kann, ohne den Proof-of-Work erneut zu erbringen. Die längste Kette dient nicht nur als Beweis für die Abfolge der bezeugten Vorgänge, sondern beweist gleichzeitig, daß sie auch vom Pool mit der höchsten Rechenleistung kam. So lange der Großteil der Rechenleistung von den Knoten (Nodes) kontrolliert wird, die nicht zusammenarbeiten, um das Netzwerk anzugreifen, werden diese die längste Kette bilden und Angreifer ausstechen. Das Netzwerk selbst benötigt nur eine sehr geringe Struktur. Nachrichten werden auf der Basis bester Bemühungen (Best Efforts) gesendet, so daß die Nodes das Netzwerk jederzeit verlassen und sich erneut anschließen können, solange sie die längste Kette als Beurkundung dessen akzeptieren, was während ihrer Abwesenheit geschehen ist.
+
+1. Einführung
+Der Handel im Internet verläßt sich fast ausschließlich auf Finanzinstitute, die als vertrauenswürdige Mittler im elektronischen Zahlungsverkehr fungieren. Obwohl das System bei den meisten Transaktionen gut genug funktioniert, leidet es dennoch unter den Schwächen eines Vertrauensbasierten Systems. Absolut unwiderrufliche Transaktionen sind nicht wirklich möglich, da Finanzinstitute um das Schlichten von Streitigkeiten nicht umhinkommen. Die Kosten dieser Schlichtungen erhöhen die Transaktionskosten, und damit auch die Mindestsumme für eine Überweisung, was wiederum das gelegentliche Überweisen von sehr kleinen Summen verunmöglicht. Zusätzliche kosten entstehen auch dadurch, daß es nicht möglich ist, unwiderrufliche Überweisungen für unwiderrufliche Leistungen zu tätigen. Durch die Möglichkeit des Rückrufes, erhöht sich der Bedarf nach Vertrauen. Händler müssen daher ihre Kunden über Gebühr belästigen, indem sie von ihnen weitaus mehr Informationen verlangen, als eigentlich nötig wäre. Eine gewisse Betrugsrate wird als unvermeidbar akzeptiert. Diese Kosten und Zahlungsunsicherheiten können durch Bargeldzahlungen vermieden werden, aber es existiert kein Mechanismus, der es ermöglicht, derartige Zahlungen über einen Kommunikationskanal zu tätigen ohne vertrauenswürdige Dritte.
+Was wir brauchen, ist ein elektronisches Bezahlsystem, das auf kryptographischen Beweisen beruht statt auf Vertrauen, und das es zwei beliebigen Parteien erlaubt, direkt miteinander Geschäfte zu tätigen, ohne dabei auf vertrauenswürdige Dritte zurückgreifen zu müssen. Transaktionen, die rechnerisch unmöglich umzukehren sind, würden Verkäufer vor Betrug schützen und Treuhänderdienste könnten auf einfache Art und Weise implementiert werden, um die Käufer zu schützen. In diesem Papier bieten wir eine Lösung für das Double-Spending-Problem durch die Verwendung eines verteilten peer-to-peer timestamp Server um die rechnerischen Nachweise für die chronologische Abfolge der Transaktionen zu erbringen. Das System ist sicher, so lange ehrliche Nodes kollektiv über eine höhere Rechenleistung (CPU Power) verfügen als die Nodes einer kooperierenden Gruppe von Angreifern.
+
+2. Transactions
+Wir definieren eine elektronische Münze (Coins) als eine Kette von digitalen Signaturen. Jeder Besitzer überweist die die Münze zum nächsten indem er eine Prüfsumme (Hash) der letzten Transaktion und den öffentlichen Schlüssel (Public Key) des nächsten Besitzers digital signiert und alles am Ende der Münze anfügt. Ein Zahlungsempfänger kann so die digitalen Signaturen prüfen um die Besitzerkette (Chain of Ownership) nachzuvollziehen.
+Das Problem besteht darin, daß der Zahlungsempfänger nicht prüfen kann, ob der Zahlende diese Münze nicht schon anderweitig ausgegeben hat. Eine mögliche Lösung wäre es, eine vertrauenswürdige zentrale Instanz einzubringen, oder eine Prägeanstalt, die jede Transaktion nach doppelten Ausgaben überprüft. Nach jeder Transaktion müßte die Münze zur Prägeanstalt zurück, die dann eine neue Münze prägt, und nur Münzen, die direkt von der Prägeanstalt ausgegeben wurden, wurden nachweislich nicht doppelt ausgegeben. Das Problem mit diesem Modell wäre, daß das gesamte Geldsystem von der Firma abhinge, die diese Prägeanstalt betreibt, da jede Transaktion diese Instanz durchlaufen müßte, in etwa so, wie bei einer Bank.
+Der Zahlungsempfänger muß die Garantie haben, daß der Vorbesitzer zuvor noch keine  Transaktionen mit derselben Münze signiert hat. Für unsere Zwecke ist die erste Transaktion die entscheidende, daher vernachlässigen wir vorerst spätere Versuche, eine Ausgabe doppelt zu tätigen. Die einzige Möglichkeit, eine Doppelausgabe auszuschließen ist, über alle Transaktionen im Bilde zu sein. Im Prägeanstalt-Modell war die Prägeanstalt über alle Transaktionen informiert und bestimmte, welche zuerst eingegangen war. Um das ohne eine dritte Instanz zu bewerkstelligen, müßten Transaktionen öffentlich verkündet werden[1], und man müßte dem ein System zugrunde legen, bei dem alle Teilnehmer sich auf einen Zeitstrang einigen, in dessen Reihenfolge die Transaktionen eingegangen sind. Der Zahlungsempfänger braucht die Gewißheit, daß die Mehrheit der Nodes sich darüber einig ist, daß er derjenige sei, der die Transaktion zuerst empfangen hat.
+3. Timestamp-Server
+Unsere vorgeschlagene Lösung beginnt mit einem Timestamp-Server. Die Funktionsweise eines Timestamp-Servers besteht darin, eine Prüfsumme (Hash) eines Datenblocks mit einem Zeitstempel zu versehen und dessen Prüfsumme breit zu veröffentlichen, wie etwa in einer Zeitung oder in einem Usenet-Post[2 – 5]. Der Zeitstempel beweist, daß die Daten zu diesem bestimmten Zeitpunkt logischerweise existiert haben müssen, da eine Prüfsumme für diese Daten sonst nicht existieren würde. Jeder Timestamp beinhaltet den vorigen Timestamp in seiner Prüfsumme und formt so eine Kette, bei der jeder zusätzliche Timestamp die vorangehenden verstärkt.
+
+4. Proof-of-Work
+Um einen weitverteilten Timestamp-Server auf peer-to-peer-Basis zu etablieren, ist ein Arbeitsnachweissystem (Proof-of-Work System) erforderlich, ähnlich wie bei Adam Back’s HashCash[6], statt Zeitungen oder Usenet-Posts. Dieser Arbeitsnachweis besteht darin, nach einem Wert zu suchen, welcher, wenn er verschlüsselt („gehasht“) wird, etwa mit SHA-256, mit einer Anzahl von null Bits (Zero Bits) beginnt. Die durchschnittliche Arbeitszeit steigt exponentiell mit der Zahl der benötigten Zero Bits. Sobald dieser Aufwand an Rechenleistung erbracht wurde und der Arbeitsnachweis dadurch erbracht ist, kann dieser Block nicht mehr geändert werden, ohne daß diese Arbeit erneut erbracht werden muß. Und da auf diesen Block kontinuierlich neue Blöcke folgen, müßte man, um diesen Block zu ändern, alle darauf folgenden Blöcke ebenfalls ändern.
+Das Proof-of-Work Konzept löst auch das Problem der Definierung der repräsentativen Entscheidungsmehrheit. Beruht die Definition von Mehrheit auf dem Prinzip von eine-IP-Adresse-eine-Stimme, könnte sie derjenige untergrabe, der über viele IP-Adressen verfügt. Proof-of-Work beruht sozusagen auf eine-CPU-eine-Stimme. Die Entscheidung der Mehrheit schlägt sich in der längsten Blockkette nieder, die auch die größte Rechenleistung (Proof-of-Work) erbracht haben muß. Wenn die größte Rechenleistung von „ehrlichen“ Nodes kontrolliert wird, wird die „ehrliche“ Kette am schnellsten wachsen und konkurrierende Ketten ausstechen. Um einen bereits fertiggestellten Block zu manipulieren, müßte der Angreifer nicht nur den Arbeitsnachweis für diesen und alle darauf folgenden Blöcke erneut erbringen, sondern zusätzlich noch die „ehrlichen“ Nodes ein- und überholen. Später wird gezeigt, daß die Wahrscheinlichkeit, daß ein langsamerer Angreifer die Blockkette einholen kann, mit jedem neuen Block exponentiell abnimmt.
+Um die im Laufe der Zeit zunehmende Rechengeschwindigkeit der Hardware und unterschiedliche Interessenslagen beim Betreiben der Nodes auszugleichen, wird der Schwierigkeitsgrad der Proof-of-work durch ein gleitenden Mittelwert bestimmt, der auf eine durchschnittliche Anzahl von Blöcken pro Stunde abzielt. Werden diese Blöcke zu schnell erzeugt, wird der Schwierigkeitsgrad automatisch hochgesetzt.
+
+5. Netzwerk
+Die Schritte um das Netzwerk zu betreiben sind folgende:
+1.) Transaktionen werden an alle Nodes gesendet.
+2.) Jeder Netwerkknoten sammelt Transaktionen zu einem Block.
+3.) Jeder Netwerkknoten versucht einen schwierigen Arbeitsnachweis für seinen Block zu finden.
+4.) Wenn ein Netwerkknoten einen gefunden hat, sendet er den Block an alle Nodes.
+5.) Nodes akzeptieren den Block nur, wenn alle Transaktionen gültig sind und keine doppelten Ausgaben vorliegen.
+6.) Nodes akzeptieren diesen Block, indem sie damit beginnen, den nächsten Block in der Kette zu erzeugen, und dabei die Prüfsumme des akzeptierten Blocks verwenden.
+Nodes gehen immer davon aus, daß die längste Kette die gültige ist, und arbeiten stets daran, sie zu erweitern. Wenn zwei Nodes unterschiedliche Versionen des nächsten Blocks simultan senden, kann es sein, daß unterschiedliche Nodes den einen oder den anderen bekommen. In einem solchen Fall arbeiten die Nodes am ersten erhaltenen Block weiter, speichern allerdings den anderen für den Fall, daß der andere Zweig doch der längere ist. Das Patt wird dann gebrochen, wenn der nächste Arbeitsnachweis gefunden wurde und einer der Zweige länger als der andere wird. Die Nodes, die am kürzeren Zweig gearbeitet haben, wechseln dann zum längeren Zweig über.
+Neu gesendete Transaktionen müssen nicht notwendigerweise alle Nodes erreichen. So lange sie viele Nodes erreichen, werden sie relativ zügig in einen Block eingearbeitet. Blockübertragungen sind auch gegenüber fehlenden Nachrichten resistent. Wenn ein Netwerkknoten keinen Block bekommt, wird dieser ihn anfordern, wenn er den nächsten Block bekommt und feststellt, daß ein Block verpaßt wurde.
+
+6. Leistungsanreiz
+Vereinbarungsgemäß ist die erste Transaktion in einem Block eine besondere Transaktion, denn diese erschafft eine neue Münze, die demjenigen zustehen, der den Block Erzeugt hat. Das bildet einen Leistungsanreiz für die Nodes, das Netzwerk zu stärken und es ist auch eine Methode, um die anfänglich die Münzen in Zirkulation zu bringen, da keine zentrale Institution existiert, die diese verteilen könnte. Das stete hinzufügen einer konstanten Anzahl von münzen ist vergleichbar mit dem Schürfen von Gold, wo Goldgräber Ressourcen aufwenden um Gold in Umlauf zu bringen. In unserem Fall sind es Rechenleistung und Strom, die aufgewendet werden müssen.
+Die Vergütung der Nodes kann auch durch Transaktionsgebühren erfolgen. Ist der Ausgangswert einer Transaktion niedriger als der Eingangswert, dann liegt das an einer Transaktionsgebühr, die dem Vergütungswert (Incentive Value) des Blocks, der die Transaktion erhält, hinzugefügt wurde. Wurde eine vorab festgelegte Anzahl an Münzen sich in Umlauf befindet, kann die Vergütungsstruktur gänzlich auf Transaktionsgebühren umgestellt werden und die Währung ist dadurch vollständig inflationsfrei.
+Die Vergütungsstruktur soll dabei helfen, die Nodes „ehrlich“ zu halten. Sollte ein gieriger Angreifer mehr Rechenleistung zusammenbekommen als alle „ehrlichen“ Nodes zusammen aufbringen können, müßte dieser sich überlegen, ob er damit Menschen betrügen möchte indem er seine Zahlungen zurückstiehlt, oder ob er neue Münzen generieren möchte. Er müßte von selbst draufkommen, daß es profitabler für ihn wäre, sich an die Regeln zu halten, denn diese Regeln entlohnen ihn für seine größere Rechenleistung mit mehr Münzen als alle anderen Teilnehmer. Das System so zu unterminieren würde für ihn nämlich bedeuten, seinen eigenen Vorteil dadurch zu unterminieren.
+
+7. Wiedergewinnung von Speicherplatz
+Sobald die jüngste Transaktion unter genügend Blöcken begraben ist, können die vorangegangenen Transaktionen entsorgt werden um so Speicherplatz freizugeben. Um das zu erreichen, ohne den Hash (Prüfsumme) der Blöcke zu brechen, werden Transaktionen in einem Merkle-Baum (Merkle Tree)[7][2][5] verschlüsselt, wobei nur die Wurzel in den Hash des Blocks mit einfließt. Alte Blöcke können dann komprimiert werden indem die Zweige des Baumes abgenommen werden. Die internen Prüfsummen müssen nicht gespeichert werden.
+Eine Block-Überschrift (Block Header) ohne Transaktionen hat ungefähr 80 Bytes. Zugrundegelegt, daß Blöcke alle zehn Minuten generiert werden, ergeben 80 Bytes x 6 x 24 x 365 = 4,2 MB pro Jahr. Typischerweise werden Computer-Systeme im Jahre 2008 mit 2GB RAM auf den Markt gebracht, und das Mooresche Gesetz (Moore’s Law) sagt einen Zuwachs von 1,2GB pro Jahr voraus. Speicherplatz sollte daher selbst dann kein Problem sein, wenn die Block Header gespeichert bleiben müssen.
+
+8. Vereinfachte Zahlungsprüfung
+Es ist möglich, Zahlungen zu verifizieren, ohne einen vollen Netwerkknoten zu betreiben. Ein Benutzer benötigt dazu lediglich eine Kopie der Block Header der längsten Kette. Diese Header erhält er, indem er das die Nodes des Netzwerk so lange abfragt, bis er davon überzeugt ist, daß es sich um die längste Kette handelt, und dann den Merkle-Zweig abrufen, der die Transaktion mit dem Block verbindet, in dem die Transaktion eingestempelt ist (Timestamp). Er kann nicht die Transaktion selbst prüfen, aber indem er sich mit einem Punkt an der Kette verbindet, kann er sehen, daß ein Netwerkknoten die Transaktion akzeptiert hat und weitere Blocks bestätigen, daß sie vom gesamten Netzwerk akzeptiert wurde.
+Insofern ist diese Prüfung verläßlich, vorausgesetzt, das Netzwerk wird überwiegend von „ehrlichen“ Nodes kontrolliert, aber sie ist anfälliger, wenn das Netzwerk einem starken Angriff ausgesetzt ist. Während Netzwerkknoten (Nodes) Transaktionen selbständig verifizieren können, könnte die vereinfachte Methode durch die gefälschten Transaktionen eines Angreifers in die Irre geführt werden, so lange dieser Angreifer das Netzwerk niederhalten kann. Eine Strategie um sich davor zu schützen, ist es, Warnungen der Nodes anzunehmen, wenn diese einen ungültigen Block entdecken, und die Software der Benutzer auffordern, den gesamten Block herunterzuladen und markierte Transaktionen zu beachten, um die Inkohärenz zu bestätigen. Geschäfte, die regelmäßig Zahlungen empfangen, dürften vermutlich trotzdem lieber ihre eigenen Nodes betreiben, im Sinne höherer Unabhängigkeit, Sicherheit und schnellerer Verifizierungen.
+
+9. Beträge zusammenfügen und splitten
+Obwohl es möglich wäre, die Münzen individuell zu handhaben, wäre es ziemlich unhandlich, eine separate Transaktion für jeden Cent in einer Überweisung zu machen. Um ein Splitten und Zusammenfügen von Beträgen, haben Transaktionen mehrere Zahlungseingänge (Inputs) und Zahlungsausgänge (Outputs). Im Normalfall wird da entweder ein einzelner Zahlungseingang eines größeren früheren größeren Betrages zu sehen sein, oder mehrfache Zahlungseingänge, die mehrere kleinere Beträge ergeben, und meistens zwei Zahlungsausgänge: Einer für die Bezahlung, und einer, der das Wechselgeld – sollte dieses Anfallen – zurück an den Sender schickt.
+Es sollte angemerkt werden, daß Fan-Out, also wenn eine Transaktion von vielen Transaktionen abhängt, und diese wiederum von vielen anderen, hier kein Problem darstellt. Es tritt nie der Fall ein, daß eine komplett eigenständige Kopie des Verlaufes einer Transaktion benötigt wird.
+
+10. Privacy
+Das traditionelle Banking-Modell erreicht ein gewisses Maß an Datenschutz indem es den Zugang zu Informationen auf die an einer Transaktion beteiligten Parteien und den vertrauenswürdigen Dritten einschränkt. Die Notwendigkeit, alle Transaktionen zu veröffentlichen schließt jedoch diese Möglichkeit aus, jedoch kann die Privatsphäre dennoch gewahrt werden, indem man den Informationsfluß an andere Stelle unterbindet: Indem man nämlich die öffentlichen Schlüssel anonym hält. Die Öffentlichkeit kann somit zwar sehen, daß jemand einen Betrag an jemand anderen sendet, jedoch ohne Informationen darüber, die diese Transaktion mit einer Person verbinden. Es ist ähnlich wie die Informationen, die die Börse veröffentlicht, bei denen der Zeitpunkt und die Höhe der einzelnen Handel, das „Tape“, zwar veröffentlicht wird, aber ohne die Information, um wen genau es sich bei den Händlern handelt.
+
+Als zusätzlicher Schutzwall sollte ein neues Schlüsselpaar für jede Transaktion benutzt werden, um zu vermeiden, daß sie zu einem einzelnen Besitzer zurückverfolgt werden können. Einige Verknüpfungen sind unvermeidlich bei mehrfachen Zahlungseingängen, die verraten, daß ihre Eingänge zum selben Empfänger führten. Das Risiko besteht darin, daß wenn der Besitzer eines Schlüssels aufgedeckt wird, frühere Zahlungseingänge desselben Empfängers ebenfalls aufgedeckt werden könnten.
+
+11. Berechnungen
+Nehmen wir an, ein Angreifer möchte eine alternative Kette von Blocks erstellen, und zwar schneller als die „ehrliche“ Kette. Selbst wenn das bewerkstelligt werden könnte, wäre das das System nicht willkürlichen Änderungen ausgesetzt. Ein Angreifer könne nicht beispielsweise einfach Geld aus dem Nichts erschaffen werden kann, oder dem System Geld entnehmen, das ihm nie gehört hat. Die Nodes akzeptieren keine ungültigen Transaktionen als Bezahlung, und „ehrliche“ Nodes akzeptieren keine Blöcke mit ungültigen Transaktionen. Ein Angreifer kann höchstens versuchen, eine eigene Transaktion zu ändern, indem er Geld zurücknimmt, das er selbst kürzlich ausgegeben hat. Das Rennen zwischen der ehrlichen Blockchain und der angreifenden Blockchain kann als binomischer Random Walk angesehen werden. Das Erfolgsereignis tritt dann ein, wenn die ehrliche Blockchain um einen Block erweitert wird, und den Vorsprung um +1 erhöht, und das Fehlerereignis tritt ein, wenn die Blockchain des Angreifers einen weiteren Block erhält, und somit den Vorsprung auf -1 wieder reduziert wird. Die Wahrscheinlichkeit, daß ein Angreifer einen Rückstand aufholen kann, ist mit dem „Ruin des Spielers“ (Gambler’s Ruin Problem) vergleichbar. Angenommen ein Spieler mit unendlichem Kredit startet mit einem Rückstand und spielt eine möglicherweise unendliche Reihe an Versuchen durch um einen Gleichstand zu erzielen. Man kann die Wahrscheinlichkeit berechnen ob er jemals den Gleichstand erreicht, oder ob ein Angreifer jemals die „ehrliche“ Blockchain einholt, wie folgt berechnen[8]:
+p = Wahrscheinlichkeit, daß ein ehrlicher Netwerkknoten den nächsten Block findet
+q = Wahrscheinlichkeit, daß ein Angreifer den nächsten Block findet
+qz = Wahrscheinlichkeit, daß der Angreifer jemals den Rückstand von z Blocks aufholen kann
+Angenommen p > q, sinkt die Wahrscheinlichkeit umgekehrt proportional zu der einzuholenden Anzahl von Blocks. Wenn er den geringen Chancen zum Trotz handelt aber keinen Glücksgriff landet, wird die Wahrscheinlichkeit verschwindend gering je weiter er zurückfällt.
+Betrachten wir nun, wie lange ein Empfänger einer neuen Transaktion warten muß bevor er sicher genug sein kann, daß der Sender die Transaktion nicht mehr ändern kann. Wir setzen den Fall, daß der Sender ein Angreifer ist, der den Empfänger eine Weile glauben machen will, daß er bezahlt hat, und dann die Zahlung umkehren und sie an sich selbst zurückzuschicken, nachdem eine gewisse Zeit vergangen ist. Der Empfänger wird gewarnt, wenn das passieren sollte, aber der Sender hofft, daß es dann zu spät ist.
+Der Empfänger generiert ein neues Schlüsselpaar und gibt dem Sender den öffentlichen Schlüssel erst kurz vor der Signatur. Das hält den Sender davon ab, im Voraus eine Kette von Blocks zu erstellen, indem er kontinuierlich daran arbeitet in der Hoffnung, daß sein Vorsprung groß genug ist, um die Transaktion in diesem Moment erst zu veranlassen. Sobald die Transaktion gesendet ist, fängt der unehrliche Sender damit an, heimlich an seiner parallelen Blockchain zu arbeiten, die eine andere Version dieser Transaktion enthält. Der Empfänger wartet bis die Transaktion zu einem Block hinzugefügt wurde, und z Blocks danach hinzugefügt wurden. Er weiß nicht genau wieviel Fortschritt der Angreifer gemacht hat, aber davon ausgehend, daß die ehrlichen Blocks die übliche Zeit für die Blöcke benötigt haben, ist der Fortschritt des Angreifers eine Poisson-Verteilung mit dem zu erwartenden Wert:
+Um die Wahrscheinlichkeit zu berechnen, ob der Angreifer nun immer noch aufholen könnte, multiplizieren wir die poissonsche Dichte für jeden Fortschritt den er gemacht haben könnte mit der Wahrscheinlichkeit, daß er von diesem Punkt aus aufholen könnte:
+Umgestellt, um den ewig langen Schwanz der Wahrscheinlichkeitsverteilung zu vermeiden...
+
+ Umgewandelt in C Code:
+ 
+#include <math.h>
+double AttackerSuccessProbability(double q, int z)
+{
+double p = 1.0 - q;
+double lambda = z * (q / p);
+double sum = 1.0;
+int i, k;
+for (k = 0; k <= z; k++)
+{
+double poisson = exp(-lambda);
+for (i = 1; i <= k; i++)
+poisson *= lambda / i;
+sum -= poisson * (1 - pow(q / p, z - k));
+}
+return sum;
+}
+
+Die Ergebnisse zeigen, daß die Wahrscheinlichkeit exponentiell zu z sinkt:
+
+q=0.1
+z=0		P=1.0000000
+z=1		P=0.2045873
+z=2		P=0.0509779
+z=3		P=0.0131722
+z=4		P=0.0034552
+z=5		P=0.0009137
+z=6		P=0.0002428
+z=7		P=0.0000647
+z=8		P=0.0000173
+z=9		P=0.0000046
+z=10		P=0.0000012
+q=0.3
+z=0		P=1.0000000
+z=5		P=0.1773523
+z=10		P=0.0416605
+z=15		P=0.0101008
+z=20		P=0.0024804
+z=25		P=0.0006132
+z=30		P=0.0001522
+z=35		P=0.0000379
+z=40		P=0.0000095
+z=45		P=0.0000024
+z=50		P=0.0000006
+
+Lösung für P kleiner als 0.1%...
+
+P < 0.001
+q=0.10	z=5
+q=0.15	z=8
+q=0.20	z=11
+q=0.25	z=15
+q=0.30	z=24
+q=0.35	z=41
+q=0.40	z=89
+q=0.45	z=340
+
+
+12. Conclusio
+Wir haben ein System für elektronische Transaktionen vorgestellt, das nicht auf Vertrauen basiert. Wir haben mit dem üblichen Rahmengefüge (Framework) von Münzen (Coins) mit digitalen Signaturen angefangen, das eine wirkungsvolle Eigentumskontrolle ermöglicht, allerdings unvollständig ist, so lange Mehrfachausgaben nicht verhindert werden können. Um dieses Problem zu lösen, schlagen wir ein Peer-to-Peer Netzwerk vor, das einen Arbeitsnachweis (Proof-of-Work) verwendet, das einen öffentlichen Transaktionsverlauf aufzeichnet, der nach kurzer Zeit für einen Angreifer rechnerisch nicht mehr abzuändern ist, solange „ehrliche“ Netzknoten (Nodes) über mehr Rechenleistung verfügen. Das Netzwerk selbst ist dank seiner unstrukturierten Einfachheit extrem robust. Netzwerkknoten (Nodes) arbeiten sofort und erfordern nur sehr geringe Koordination. Sie müssen nicht identifiziert werden, da Nachrichten nicht an einen bestimmten Punkt geschickt werden brauchen, und lediglich auf Basis des „besten Bemühens“ (Best Effort) ausgeliefert werden müssen. Die Netzwerkknoten (Nodes) können das Netzwerk verlassen und betreten wann immer sie möchten, wenn sie die Blockchain als Beweis für das akzeptieren, was während ihrer Abwesenheit vonstatten ging. Sie stimmen mit ihrer Rechenleistung (CPU-Power) ab und drücken aus, daß sie die gültigen Blöcke akzeptieren, indem sie daran arbeiten, diese auszuweiten und gleichzeitig ungültige Blocks zurückzuweisen, indem sie sich weigern, an diesen zu arbeiten. Alle nötigen Regeln und Anreize können mit diesem Konsensmechanismus durchgeführt werden.
+
+Quellennachweise
+[1] W. Dai, "b-money," http://www.weidai.com/bmoney.txt, 1998.
+[2] H. Massias, X.S. Avila, and J.-J. Quisquater, "Design of a secure timestamping service with minimal trust requirements," beim 20th Symposium for Information Theory in den Benelux-Ländern, Mai 1999.
+[3] S. Haber, W.S. Stornetta, "How to time-stamp a digital document," im Journal of Cryptology, vol. 3, no. 2, Seiten 99-111, 1991.
+[4] D. Bayer, S. Haber, W.S. Stornetta, "Improving the efficiency and reliability of digital time-stamping," In Sequences II: Methods in Communication, Security and Computer Science, Seiten 329-334, 1993.
+[5] S. Haber, W.S. Stornetta, "Secure names for bit-strings," in Proceedings of the 4th ACM Conference on Computer and Communications Security, Seiten 28-35, April 1997.
+[6] A. Back, "Hashcash - a denial of service counter-measure," http://www.hashcash.org/papers/hashcash.pdf, 2002.
+[7] R.C. Merkle, "Protocols for public key cryptosystems," in Proc. 1980 Symposium on Security and Privacy, IEEE Computer Society, Seiten 122-133, April 1980.
+[8] W. Feller, "An introduction to probability theory and its applications," 1957.
